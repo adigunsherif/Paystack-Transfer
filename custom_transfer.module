@@ -1,0 +1,73 @@
+<?php
+
+function custom_transfer_menu() {
+  $items['admin/config/user-interface/custom-transfer'] = array(
+    'title' => 'Custom Module Config',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('custom_transfer_admin'),
+    'access arguments' => array('administer content'),
+    'file' => 'custom_transfer.admin.inc',
+  );
+    return $items;
+}
+
+/**
+ * Implements hook_uc_checkout_complete
+ */
+
+function custom_transfer_uc_checkout_complete($order, $account) {
+  $items = $nodes = array();
+
+  foreach($order->products as $item){
+    $node = node_load($item->nid);
+    $webform = variable_get('custom_transfer_webform_field', 'field_webform');
+    if ( isset($node->$webform)){
+      $webformid = $node->$webform['und'][0]['target_id'];
+      $webform_uid = db_query("SELECT uid FROM {node} WHERE nid = :nid", array(':nid' => $webformid))->fetchField();
+      $items[] = array(
+        'uid'=>$webform_uid,
+        'amount'=>$item->qty * $item->price,
+      );
+    };
+
+  }
+
+  $people = array();
+  foreach($items as $item){
+    if (isset($people[$item['uid']])){
+      $people[$item['uid']] += $item['amount'];
+    }else{
+      $people[$item['uid']] = $item['amount'];
+    }
+  }
+
+  //now transfer money for each pe rson in here
+  $charges = variable_get('custom_transfer_merchant_charges');
+  foreach($people as $person=>$amount){
+    $recipient = user_load($person);
+    $total = $amount - ($charges/100 * $amount);
+    rules_invoke_event('on_fund_transfer', $recipient, $total);
+  }
+
+
+
+}
+
+
+
+/**
+ * Function to know what the current secret key is based on the uc_paystack module
+ */
+function custom_transfer_secret_key(){
+  //get secret key from uc_paystack module
+  $mode = variable_get ('paystack_mode', '');
+  $test_secret_key = variable_get('test_secretkey');
+  $live_secret_key = variable_get('live_secretkey');
+  if ($mode == 'test') {
+    $key = $test_secret_key;
+  }else{
+    $key = $live_secret_key;
+  }
+
+  return $key;
+}

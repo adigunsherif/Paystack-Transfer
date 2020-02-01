@@ -1,0 +1,12 @@
+<?php
+
+/**
+ * @file
+ * Install file for custom_transfer.module.
+ */
+
+function custom_transfer_uninstall() {
+   variable_del('custom_transfer_webform_field');
+   variable_del('custom_transfer_merchant_charges');
+}
+

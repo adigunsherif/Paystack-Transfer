@@ -1,0 +1,7 @@
+name = Custom Transfer to Paystack
+description = Yes, just custom by sherif
+
+dependencies[] = uc_paystack
+
+package = Custom
+core = 7.x
